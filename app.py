@@ -50,12 +50,12 @@ def precipitation():
     
     session = Session(engine)
     
-    results = session.query(Measurement.date, Measurement.prcp).all()
+    results1 = session.query(Measurement.date, Measurement.prcp).all()
     
     session.close()
     
     all_prcp = []
-    for date, prcp in results:
+    for date, prcp in results1:
         prcp_dict = {}
         prcp_dict['date'] = date
         prcp_dict['prcp'] = prcp
@@ -68,11 +68,11 @@ def stations():
     
     session = Session(engine)
     
-    results = session.query(Station.station, Station.name).all()
+    results2 = session.query(Station.name).all()
     
     session.close()
     
-    all_stations = list(np.ravel(results))
+    all_stations = list(np.ravel(results2))
     
     return jsonify(all_stations)
 
@@ -81,12 +81,17 @@ def tobs():
     
     session = Session(engine)
    
-    results = session.query(Measurement.date, Measurement.tobs).\
+    results3 = session.query(Measurement.date, Measurement.tobs).\
     filter(Measurement.station == 'USC00519281', Measurement.date>='2016-08-18').all()
     
     session.close()
     
-    all_tobs = list(np.ravel(results))
+    all_tobs = []
+    for date, tobs in results3:
+        tobs_dict = {}
+        tobs_dict['date'] = date
+        tobs_dict['temp'] = tobs
+        all_tobs.append(tobs_dict)
     
     return jsonify(all_tobs)
 
@@ -94,55 +99,47 @@ def tobs():
 def measurement_date(start):
     
     session = Session(engine)
-    
-    print(request.args['start'])
-    
-    if 'start' in request.args:
-        start = request.args['start']
-    else:
-        return "Error: No start date provided. Please provide a date (YYYY-MM-DD)."
-    
-    results = session.query(func.max(Measurement.tobs).label('TMAX')\
+        
+    results_start = session.query(func.max(Measurement.tobs)\
                                 .filter(Measurement.date>=start),
-                                func.min(Measurement.tobs).label('TMIN')\
+                                func.min(Measurement.tobs)\
                                 .filter(Measurement.date>=start),
-                                func.avg(Measurement.tobs).label('TAVG')\
+                                func.avg(Measurement.tobs)\
                                 .filter(Measurement.date>=start))
 
     session.close()
     
-    start_tobs = list(np.ravel(results))
+    start_tobs = []
+    for ma,mi,avg in results_start:
+        start_dict={}
+        start_dict['TMAX'] = ma
+        start_dict['TMIN'] = mi
+        start_dict['TAVG'] = avg
+        start_tobs.append(start_dict)
     
     return jsonify(start_tobs)
  
 @app.route('/api/v1.0/<start>/<end>')
-def measurement_date_range(start, end):
+def measurement_range(start, end):
     
     session = Session(engine)
-    
-    print(request.args['start'])
-    print(request.args['end'])
-    
-    if 'start' in request.args:
-        start = request.args['start']
-    else:
-        return "Error: No start date provided. Please provide a date (YYYY-MM-DD)."
-                                
-    if 'end' in request.args:
-        end = request.args['end']
-    else:
-        return "Error: No end date provided. Please provide a date (YYYY-MM-DD)."
 
-    results = session.query(func.max(Measurement.tobs).label('TMAX')\
+    results_end = session.query(func.max(Measurement.tobs)\
                                 .filter(Measurement.date>=start).filter(Measurement.date<=end),
-                                func.min(Measurement.tobs).label('TMIN')\
+                                func.min(Measurement.tobs)\
                                 .filter(Measurement.date>=start).filter(Measurement.date<=end),
-                                func.avg(Measurement.tobs).label('TAVG')\
+                                func.avg(Measurement.tobs)\
                                 .filter(Measurement.date>=start).filter(Measurement.date<=end))
     
     session.close()
     
-    range_tobs = list(np.ravel(results))
+    range_tobs = []
+    for ma,mi,avg in results_end:
+        range_dict={}
+        range_dict['TMAX'] = ma
+        range_dict['TMIN'] = mi
+        range_dict['TAVG'] = avg
+        range_tobs.append(range_dict)
     
     return jsonify(range_tobs)
                                 
